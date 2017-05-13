@@ -175,6 +175,23 @@ def abs_sobel_thresh(img, orient='x', thresh_min=0, thresh_max=255, ksize=3, inv
     return binary_output
 
 
+def mag_thresh(img, thresh_min=0,thresh_max=255,ksize=3):
+
+    gray = cv2.cvtColor(img,cv2.COLOR_RGB2GRAY)
+    ksize = 31 if ksize > 31 else ksize # max at 31
+    sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=ksize)
+    sobely = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=ksize)
+    # Calculate the gradient magnitude
+    gradmag = np.sqrt(sobelx**2 + sobely**2)
+
+    # scale to 255 max
+    gradmag = np.uint8((gradmag / np.max(gradmag)) * 255)
+
+    binary_output = np.zeros_like(gradmag)
+    binary_output[(gradmag >= thresh_min) & (gradmag <= thresh_max)] = 1
+    return binary_output
+
+
 def color_thresh(img):
 
     hls = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
@@ -187,21 +204,49 @@ def color_thresh(img):
     r = img[:,:,2]
 
     binary = np.zeros_like(S)
-    binary[( ((S > 90) & (S <= 255) & (H >70) & (H < 109)) | (r > 200) )] = 1
+    binary[( ((S > 90) & (S <= 255) & (H >75) & (H < 109)) | (r > 205) )] = 1
     return binary
 
+def getTopMask(img):
+
+    height,width,_ = img.shape
+    ones = np.ones((720//2)*1280)
+    zeros = np.zeros((height-(720//2))*1280)
+    return np.concatenate((ones,zeros)).reshape((height,width))
+
+def dir_threshold(img, sobel_kernel=3, thresh=(0, np.pi/2)):
+
+    thresh_min,thresh_max = thresh
+    ksize = sobel_kernel
+
+    gray = img
+    if len(img.shape) == 3:
+        gray = cv2.cvtColor(img,cv2.COLOR_RGB2GRAY)
+    ksize = 31 if ksize > 31 else ksize # max at 31
+    msobelx = np.absolute( cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=ksize) )
+    msobely = np.absolute( cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=ksize) )
+    # Calculate the gradient magnitude
+    result = np.arctan2(msobely,msobelx)
+
+    binary_output = np.zeros_like(result)
+    binary_output[(result >= thresh_min) & (result <= thresh_max)] = 1
+
+    return binary_output
 
 def binaryThresholded(img):
 
-    thX = abs_sobel_thresh(img,orient='x',thresh_min=15,thresh_max=70,ksize=5)
+    gradX_binary = abs_sobel_thresh(img,orient='x',thresh_min=10,thresh_max=30,ksize=3)
+    gradY_binary = abs_sobel_thresh(img,orient='y',thresh_min=20,thresh_max=65,ksize=3)
+    mag_binary = mag_thresh(img,30,100,9)
+    dir_binary = dir_threshold(img,15,(0.7,1.3))
     colored = color_thresh(img)
-    result = np.zeros_like(thX)
 
-    result[( (colored==1) | (thX == 1) )] = 1
-    return result
+    combined = np.zeros_like(gradX_binary)
+    combined[( (((gradX_binary == 1) & (gradY_binary == 1)) | ((mag_binary == 1) & (dir_binary == 1))) | colored == 1  )] = 1
+    return combined
 
 
-img = plt.imread('test_images/test5.jpg')
+img = plt.imread('test_images/test3.jpg')
 undist = cv2.undistort(img, mtx, dist, None, mtx)
 
 thresholdedImg = binaryThresholded(undist)
@@ -213,3 +258,4 @@ ax = plt.subplot(1,2,2)
 ax.set_title("Binary Thresholded")
 plt.imshow(thresholdedImg, cmap='gray')
 plt.show()
+
