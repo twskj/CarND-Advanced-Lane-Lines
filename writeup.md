@@ -107,6 +107,6 @@ Here's a [link to my video result](result/1.mp4)
 
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-One issue from this pipeline is the fact that the binary threshold cannot reliably produce a clear line in all conditions. When it fail either it detects the wrong line or not detecting at all. This can be improve by tuning parameters on calculating gradient and adjusting color threshold. Furthermore, it needs a better filtering step to remove unrelate pixels get into curvature computation step.
+One issue from this pipeline is the fact that the binary threshold cannot reliably produce a clear line in all conditions. When it fail, it either include "irrelevant pixels" or not detecting at all. This can be improve by tuning parameters on calculating gradient and further adjusting color threshold. Perhaps, it could allow more pixels be detected but adding another filtering step to unrelate pixels.
 
-Lastly, this pipeline only look at the current road in front of the car. It should be a useful to look further down the road so it knows what is approaching. This will help in a situation where a lightning condition is suddenly changed or direct sunlight get into a camera.
+Lastly, this pipeline only looks at the road in front of the car. It might be a good idea to look further and try to compute what is coming. This will help out when the binary threshold fails to detect a good pixels. And it might help in a situation where a lightning condition is suddenly changed or sunlight directly shine into the dash cam.
